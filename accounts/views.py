@@ -1,0 +1,97 @@
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout, get_user, update_session_auth_hash
+from .form import * 
+
+User = get_user_model()
+
+# Registers new users to the app
+def register_user(request):
+    if request.method == 'POST':
+        form = RegisterUserForm(request.POST)
+        if form.is_valid():
+            var = form.save(commit=False) # pause saving form to DB
+            var.username = var.email # sync email and username fields, so they both have same value 
+            var.save() # save the form here 
+            messages.success(request, 'Your account creation was successful! Please log in to continue')
+            return redirect('login')
+        else:
+            messages.warning(request, 'Something went wrong') # Yes, I know this is generic. whatchu gonna do😂😂
+            return redirect('register')
+    else:
+        form = RegisterUserForm()
+        context = {'form':form}
+    return render(request, 'accounts/register.html', context)
+
+# Logs user in. Logged in users must be active and not None (I mean, they shouldn't be)
+def login_user(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None and user.is_active:
+            login(request, user)
+            messages.success(request, f'Welcome to our Site. You are logged in as {user.first_name}')
+            return redirect('dashboard')
+        else:
+            messages.warning(request, 'Something went wrong') # I know! Generic again
+            return redirect('login')
+    return render(request, 'accounts/login.html')
+
+# Logs out users (Simple terms)
+def logout_user(request):
+    logout(request)
+    messages.success(request, 'Your active session has ended. Log in to continue again')
+    return redirect('login') # redirect users to login page after they logout
+
+# Allows users to change their own password, from old to new. 
+def change_password(request):
+    if request.method == 'POST':
+        form = UserPasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # This would allow the user to still stay logged in after password change
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('change-password')
+        else:
+            messages.warning(request, 'Something went wrong!')
+            return redirect('password-change')
+    else:
+        form = UserPasswordChangeForm(request.user)
+        context = {'form':form}
+    return render(request, 'accounts/change_password.html', context)
+
+# Users can update their profile info
+def update_profile(request):
+    if request.method == 'POST':
+        form = UpdateUserProfileForm(request.user, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Your profile information has been updated and saved')
+            return redirect('dashboard')
+        else:
+            messages.warning(request, 'Something went wrong')
+            return redirect('update-profile')
+    else:
+        form = UpdateUserProfileForm(request.user)
+        context = {'form':form}
+    return render(request, 'accounts/update_profile.html', context)
+
+# allows admin to reset user passwords 
+def admin_reset_user_password(request, pk):
+    user = User.objects.get(pk=pk)
+    if request.method == 'POST':
+        password1 = request.POST.get('password1')
+        password2 = request.POST.get('password2')
+
+        if password1 == password2:
+            user.set_password(password1)
+            messages.success(request, f'{user.first_name} has been updated and saved')
+        else:
+            messages.warning('Sorry, Password do not match😥')
+            return redirect('dashboard')
+    return render(request, 'accounts/admin_reset_user_password.html')
+
+# reset user password func is found in accounts/urls.py
