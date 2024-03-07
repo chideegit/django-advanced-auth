@@ -66,7 +66,7 @@ def change_password(request):
 # Users can update their profile info
 def update_profile(request):
     if request.method == 'POST':
-        form = UpdateUserProfileForm(request.user, request.POST)
+        form = UpdateUserProfileForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Your profile information has been updated and saved')
@@ -75,23 +75,6 @@ def update_profile(request):
             messages.warning(request, 'Something went wrong')
             return redirect('update-profile')
     else:
-        form = UpdateUserProfileForm(request.user)
+        form = UpdateUserProfileForm(instance=request.user)
         context = {'form':form}
     return render(request, 'accounts/update_profile.html', context)
-
-# allows admin to reset user passwords 
-def admin_reset_user_password(request, pk):
-    user = User.objects.get(pk=pk)
-    if request.method == 'POST':
-        password1 = request.POST.get('password1')
-        password2 = request.POST.get('password2')
-
-        if password1 == password2:
-            user.set_password(password1)
-            messages.success(request, f'{user.first_name} has been updated and saved')
-        else:
-            messages.warning('Sorry, Password do not match😥')
-            return redirect('dashboard')
-    return render(request, 'accounts/admin_reset_user_password.html')
-
-# reset user password func is found in accounts/urls.py

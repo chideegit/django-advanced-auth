@@ -8,7 +8,6 @@ urlpatterns = [
     path('logout/', logout_user, name='logout'), 
     path('change-password/', change_password, name='change-password'), 
     path('update-profile/', update_profile, name='update-profile'),
-    path('admin-reset-user-password', admin_reset_user_password, name='admin-reset-user-profile'), 
 
     # reset password links (default from django)
     path('reset-password/', auth_views.PasswordResetView.as_view(template_name = "accounts/reset_password.html"), name ='reset_password'),
